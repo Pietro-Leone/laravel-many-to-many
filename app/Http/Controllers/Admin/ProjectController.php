@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProjectUpsertRequest;
 use App\Models\Project;
+use App\Models\Technology;
 use App\Models\Type;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +30,8 @@ class ProjectController extends Controller
     public function create(): View
     {
         $types = Type::all();
-        return view("admin.projects.create", compact("types"));
+        $technologies = Technology::all();
+        return view("admin.projects.create", compact("types", "technologies"));
     }
 
     /**
@@ -40,10 +42,13 @@ class ProjectController extends Controller
         $data = $request->validated();
 
         $data["slug"] = $this->generateSlug($data["title"]);
-        $data["language"] = json_encode([$data["language"]]);
         $data["thumb"] = Storage::put("projects", $data["thumb"]);
 
         $project = Project::create($data);
+
+        if (key_exists("technologies", $data)) {
+            $project->technologies()->attach($data["technologies"]);
+        }
 
         return redirect()->route("admin.projects.show", $project->slug);
     }
@@ -65,8 +70,9 @@ class ProjectController extends Controller
     {
         $project = Project::where("slug", $slug)->firstOrFail();
         $types = Type::all();
+        $technologies = Technology::all();
 
-        return view("admin.projects.edit", compact("project", "types"));
+        return view("admin.projects.edit", compact("project", "types", "technologies"));
     }
 
     /**
@@ -78,18 +84,18 @@ class ProjectController extends Controller
 
         $project = Project::where("title", $slug)->firstOrFail();
 
-        $data["language"] = json_encode([$data["language"]]);
-
-        if(isset($data["thumb"])){
+        if (isset($data["thumb"])) {
             Storage::delete($project->thumb);
             $data["thumb"] = Storage::put("projects", $data["thumb"]);
-        }else{
+        } else {
             $data["thumb"] = $project->thumb;
         };
 
         if ($data["title"] !== $project->title) {
             $data["slug"] = $this->generateSlug($data["title"]);
         }
+
+        $project->technologies()->sync($data["technologies"]);
 
         $project->update($data);
 
@@ -106,6 +112,8 @@ class ProjectController extends Controller
         if ($project->thumb) {
             Storage::delete($project->thumb);
         }
+
+        $project->technologies()->detach();
         $project->delete();
 
         return redirect()->route("admin.projects.index");

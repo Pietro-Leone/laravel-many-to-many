@@ -7,7 +7,7 @@
   <div class="card p-4 mb-4 bg-dark shadow rounded-lg">
     <form action="{{ route('admin.projects.update', $project->slug) }}" method="POST" enctype="multipart/form-data">
       @csrf()
-      @method("put")
+      @method("PUT")
 
       <div class="row mb-3">
         <label class="col-sm-2 col-form-label">Titolo</label>
@@ -59,7 +59,7 @@
         <label class="col-sm-2 col-form-label">Rilascio</label>
         <div class="col-sm-10">
           <input type="date" class="form-control @error('release') is-invalid @enderror"
-            value="{{old('release', $project->release->format("Y-m-d"))}}" name="release">
+            value="{{old('release', $project->release->format('Y-m-d'))}}" name="release">
           @error('release')
           <div class="invalid-feedback">{{$message}}</div>
           @enderror
@@ -68,12 +68,16 @@
 
       <div class="row mb-3">
         <label class="col-sm-2 col-form-label">Linguaggi</label>
-        <div class="col-sm-10">
-          <input type="text" class="form-control @error('language') is-invalid @enderror"
-            value="{{old('language', join(" , ",json_decode($project["language"])))}}" name="language">
-          @error('language')
-          <div class="invalid-feedback">{{$message}}</div>
-          @enderror
+        <div class="col-sm-10 d-flex flex-wrap">
+          <div class="row flex-wrap justify-content-start">
+            @foreach ($technologies as $technology)
+            <div class="d-flex" style="width: fit-content">
+              <input type="checkbox" name="technologies[]" value="{{$technology->id}}" {{
+                $project->technologies?->contains($technology) ? 'checked' : '' }} class="form-check-input me-1">
+              <label class="form-check-label">{{$technology->name}}</label>
+            </div>
+            @endforeach
+          </div>
         </div>
       </div>
 
@@ -89,14 +93,14 @@
       </div>
 
       <div class="text-center">
-        <a class="btn btn-secondary" href="{{ route("admin.projects.index") }}">Annulla</a>
+        <a class="btn btn-secondary" href="{{ route('admin.projects.index') }}">Annulla</a>
         <button class="btn btn-primary" type="submit">Salva</button>
 
       </div>
 
     </form>
-    <form action="{{ route("admin.projects.destroy", $project->slug) }}" method="POST">
-      @csrf
+    <form action="{{ route('admin.projects.destroy', $project->slug) }}" method="POST">
+      @csrf()
       @method("DELETE")
 
       <button type="submit" class="btn btn-danger">Elimina</button>
