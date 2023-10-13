@@ -41,7 +41,7 @@ class ProjectController extends Controller
     {
         $data = $request->validated();
 
-        $data["slug"] = $this->generateSlug($data["title"]);
+        $data["slug"] = $this->generateSlug($data, $data["title"]);
         $data["thumb"] = Storage::put("projects", $data["thumb"]);
 
         $project = Project::create($data);
@@ -78,11 +78,11 @@ class ProjectController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(ProjectUpsertRequest $request, string $slug): RedirectResponse
+    public function update(ProjectUpsertRequest $request, $slug): RedirectResponse
     {
         $data = $request->validated();
 
-        $project = Project::where("title", $slug)->firstOrFail();
+        $project = Project::where("slug", $slug)->firstOrFail();
 
         if (isset($data["thumb"])) {
             Storage::delete($project->thumb);
@@ -92,7 +92,7 @@ class ProjectController extends Controller
         };
 
         if ($data["title"] !== $project->title) {
-            $data["slug"] = $this->generateSlug($data["title"]);
+            $data["slug"] = $this->generateSlug($data, $data["title"]);
         }
 
         $project->technologies()->sync($data["technologies"]);
@@ -119,14 +119,14 @@ class ProjectController extends Controller
         return redirect()->route("admin.projects.index");
     }
 
-    protected function generateSlug($title)
+    protected function generateSlug($data)
     {
         // contatore da usare per avere un numero incrementale
         $counter = 0;
 
         do {
             // creo uno slug e se il counter è maggiore di 0, concateno il counter
-            $slug = Str::slug($title) . ($counter > 0 ? "-" . $counter : "");
+            $slug = Str::slug($data["title"]) . ($counter > 0 ? "-" . $counter : "");
 
             // cerco se esiste già un elemento con questo slug
             $alreadyExists = Project::where("slug", $slug)->first();
